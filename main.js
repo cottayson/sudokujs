@@ -10,12 +10,15 @@ function Solver(S) {
       });
     },
     solve: function() {
+      let boardChanged = false;
       S.forAll(function(i, j) {
         let arr = S[i][j].candidates.toArray();
         if(arr.length == 1 && S[i][j].n == 0) {
           S[i][j].n = arr[0];
+          boardChanged = true;
         }
       });
+      return boardChanged;
     }
   };
 
@@ -31,13 +34,18 @@ function Solver(S) {
       }
     },
     solve: function() {
+      let boardChanged = false;
       let arr = S.sumAllRowsColumnsAndBoxes();
       for(let i in arr) {
         let x = arr[i].coords[0];
         let y = arr[i].coords[1];
         let digit = arr[i].digit;
-        S[x][y].n = digit;
+        if (S[x][y].n !== digit) {
+          S[x][y].n = digit;
+          boardChanged = true;
+        }
       }
+      return boardChanged;
     }
   };
 
@@ -55,18 +63,28 @@ function Solver(S) {
   }
 
   this.solve = function(tactic) {
+    let boardChanged = false;
+    let tacticName = undefined;
     if(typeof(tactic) == "string") {
       S.setAllCandidates();
-      this.tactics[tactic].solve();
+      if (this.tactics[tactic].solve()) {
+        tacticName = tactic;
+        boardChanged = true;
+      }
     } else {
       for(let i in this.tactics) {
         S.setAllCandidates();
-        this.tactics[i].solve();
+        if(this.tactics[i].solve()) {
+          tacticName = i;
+          boardChanged = true;
+          break;
+        }
       }
     }
     S.clearColors();
     this.detectErrors();
     S.print();
+    return {boardChanged, tacticName};
   }
 
   this.detectErrors = function() {
@@ -91,30 +109,83 @@ function Solver(S) {
 }
 
 let s = Sudoku();
-// s.setRow(0,[0,0,0, 0,0,0, 6,0,0]);
-// s.setRow(1,[0,0,0, 0,0,0, 1,2,3]);
-// s.setRow(2,[5,0,9, 0,6,0, 0,0,0]);
+// s.setFromString(`
+// 0|0|0| 0|0|0| 6|0|0
+// 0|0|0| 0|0|0| 1|2|3
+// 5|0|9| 0|6|0| 0|0|0
+// 0|0|0| 3|0|0| 0|7|0
+// 6|0|0| 2|0|0| 0|0|5
+// 0|4|0| 0|0|8| 0|0|0
+// 0|0|0| 0|8|0| 7|0|6
+// 2|6|4| 0|0|0| 0|0|0
+// 0|0|5| 0|0|4| 0|0|0`);
 
-// s.setRow(3,[0,0,0, 3,0,0, 0,7,0]);
-// s.setRow(4,[6,0,0, 2,0,0, 0,0,5]);
-// s.setRow(5,[0,4,0, 0,0,8, 0,0,0]);
+// hard 1
+// s.setFromString(`
+// 0|0|5| 0|0|4| 0|0|0
+// 2|0|0| 0|9|0| 0|4|0
+// 0|0|0| 1|3|2| 6|5|0
+// 1|0|0| 0|0|0| 4|3|0
+// 0|0|0| 0|0|0| 0|0|5
+// 0|4|0| 8|0|0| 0|6|2
+// 0|0|0| 0|0|0| 5|8|6
+// 0|0|0| 0|0|3| 0|0|9
+// 0|8|6| 9|0|0| 3|0|4`);
 
-// s.setRow(6,[0,0,0, 0,8,0, 7,0,6]);
-// s.setRow(7,[2,6,4, 0,0,0, 0,0,0]);
-// s.setRow(8,[0,0,5, 0,0,4, 0,0,0]);
 
-s.setRow(0,[0,0,5, 0,0,4, 0,0,0]);
-s.setRow(1,[2,0,0, 0,9,0, 0,4,0]);
-s.setRow(2,[0,0,0, 1,3,2, 6,5,0]);
+// hard 1 modified in (R9C2: 8 -> 1, R3C1: _ -> 9) for testing unique solution
+// s.setFromString(`
+// 0|0|5| 0|0|4| 0|0|0
+// 2|0|0| 0|9|0| 0|4|0
+// 9|0|0| 1|3|2| 6|5|0
+// 1|0|0| 0|0|0| 4|3|0
+// 0|0|0| 0|0|0| 0|0|5
+// 0|4|0| 8|0|0| 0|6|2
+// 0|0|0| 0|0|0| 5|8|6
+// 0|0|0| 0|0|3| 0|0|9
+// 0|1|6| 9|0|0| 3|0|4`);
 
-s.setRow(3,[1,0,0, 0,0,0, 4,3,0]);
-s.setRow(4,[0,0,0, 0,0,0, 0,0,5]);
-s.setRow(5,[0,4,0, 8,0,0, 0,6,2]);
+function readFromString(str) {
+  let row = [];
+  for (let i = 0; i < str.length; i++) {
+    let ch = str.charAt(i);
+    if (ch === '_' || ch === '0') { row.push(0)          }
+    if ('123456789'.includes(ch)) { row.push(Number(ch)) }
+  }
+  return row;
+}
 
-s.setRow(6,[0,0,0, 0,0,0, 5,8,6]);
-s.setRow(7,[0,0,0, 0,0,3, 0,0,9]);
-s.setRow(8,[0,8,6, 9,0,0, 3,0,4]);
+// extreme 0
 
+// s.setFromString(
+// `_|_|_|2|_|_|3|_|1
+//  _|4|_|_|_|5|_|_|8
+//  _|_|5|_|_|9|_|_|2
+//  _|_|_|_|8|_|_|4|_
+//  9|8|_|_|5|_|_|_|_
+//  6|_|_|3|_|1|_|_|_
+//  _|_|_|4|_|2|9|_|_
+//  _|1|_|7|_|_|_|_|5
+//  _|_|8|_|6|_|1|_|_`
+// );
+
+// extreme 1
+s.setFromString(
+`_|1|_|7|_|_|6|_|3
+ _|_|8|_|_|_|1|4|_
+ _|_|_|_|_|1|_|_|_
+ 9|_|_|_|_|5|2|_|_
+ _|_|_|9|7|_|_|6|_
+ 6|_|4|_|_|2|_|9|_
+ _|_|_|_|5|_|7|8|_
+ 1|3|5|_|_|_|_|_|_
+ _|_|_|_|6|_|_|_|5`);
+
+
+
+// <div>
+// <textarea rows="10" cols="50"></textarea>
+// </div>
 
 //s[0][0].n=3;
 //s[0][1].n=4;
@@ -123,19 +194,122 @@ s.setRow(8,[0,8,6, 9,0,0, 3,0,4]);
 s.setAllCandidates();
 s.print();
 
-let estimate = true;
+t1 = document.createElement('textarea');
+t1.style = "margin: 10px; width: 325px; height: 125px;";
+t1.innerHTML = 
+`R1C2 del digit 3 by X-Wing
+R2C3 enter digit 7 using hidden_pair
+...
+coord action by lemma
+User can write in this area instructions for solver or load board from string.`;
+document.body.appendChild(t1);
 
-function turn() {
-  if(estimate)
+let flag = true;
+
+function turn(solveFunc) {
+  if(flag) {
+    solveFunc();
     s.solver.estimate();
-  else
-    s.solver.solve();
+  }
+  else {
+    // s.solver.tactics.hiddenOne.solve();
+  }
+  // s.print();
+  
     
-  estimate = !estimate;
+  // flag = !flag;
 }
 
-s.elem.addEventListener('click', turn);
-window.addEventListener('keydown', turn);
+s.elem.oncontextmenu = function () {
+  return false;
+}
+
+function isClickedOnCandidates(cell) {
+  return cell.deepIndex === 4;
+}
+
+s.elem.addEventListener('mousedown', (event) => {
+  const button = event.button;
+  const [mbLeft, mbMiddle, mbRight] = [0, 1, 2];
+  // event.preventDefault();
+  // event.stopPropagation();
+  function drawSmallColors(cell, small_digit) {
+    s.clearColors();
+    s.setColorsOfSmallSquares(
+      cell.row, cell.column, s.arrayToSet([small_digit]), [0, 255, 0]);
+  }
+
+  let cell = getRowAndColumnOfEvent(event);
+
+  if (cell.row !== undefined && cell.column !== undefined)
+  {
+    if (isClickedOnCandidates(cell))
+    {
+      const small_row = cell.target.parentNode.rowIndex;
+      const small_column = cell.target.cellIndex;
+      const small_digit = small_row * 3 + small_column + 1;
+      if (button === mbLeft) {
+        let candidates = s[cell.row][cell.column].candidates;
+        if (candidates.isElem(small_digit)) {
+          s.setN(cell.row, cell.column, small_digit);
+        } else {
+          drawSmallColors(cell, small_digit);
+        }
+      }
+      else if (button === mbRight) {
+        drawSmallColors(cell, small_digit);
+        let candidates = s[cell.row][cell.column].candidates;
+        candidates[small_digit - 1] ^= 1;
+      } else {
+        s[cell.row][cell.column].candidates = new Set().inverse();
+      }
+    } 
+    else {
+      if (button === mbLeft)
+      {
+        if (s[cell.row][cell.column].n !== 0) {
+          s.clearColors();
+          s.setColor(cell.row, cell.column, [0, 255, 0]);
+        }
+      }
+      else if (button === mbRight) {
+        let digit = s[cell.row][cell.column].n;
+        if (digit > 0) {
+          s[cell.row][cell.column].candidates = s.arrayToSet([digit]);
+        }
+        s.setN(cell.row, cell.column, 0);
+      } 
+      else {
+
+      }
+    }
+    s.print();
+  }
+  else {
+    console.warn('cell = ', cell);
+  }
+});
+
+function getRowAndColumnOfEvent(event) {
+  for(let i = event.path.length - 1; i >= 0; i--) {
+    let element = event.path[i];
+    if (element.tagName === "TD" && element.cellIndex !== undefined) {
+      return {
+        target: event.target,
+        deepIndex: i,
+        row: element.parentNode.rowIndex,
+        column: element.cellIndex
+      };
+    }
+  }
+  return { target: undefined, deepIndex: -1, row: undefined, column: undefined };
+}
+
+window.addEventListener('keydown', (event) => {
+  // if (event.key === "Enter" && event.shiftKey) { turn() }
+  if (event.key === "q") { turn(s.solver.tactics.lastHero.solve) }
+  if (event.key === "h") { turn(s.solver.tactics.hiddenOne.solve) }
+});
 
 function Sudoku() {
   let sudoku = [];
@@ -420,6 +594,22 @@ function Sudoku() {
     }
   }
 
+  sudoku.setFromArray = function (arr) {
+    if (arr.length === 81) {
+      for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+          this.setN(i, j, arr[9*i + j]);
+        }
+      }
+    } else {
+      throw new Error(`arr.length = ${arr.length} != 81`);
+    }
+  }
+
+  sudoku.setFromString = function (str) {
+    this.setFromArray(readFromString(str));
+  }
+
   sudoku.limit = function(L) {
     return L > 9 ? 9 : L;
   }
@@ -515,10 +705,10 @@ function Sudoku() {
 
     if(this.elem == undefined) {
       this.elem = document.createElement("table");
+      this.elem.className="OuterT";
+      document.body.appendChild(this.elem);
     }
-    this.elem.className="OuterT";
     this.elem.innerHTML = s;
-    document.body.appendChild(this.elem);
   }
 
   sudoku.getN = function(x, y) {
