@@ -194,30 +194,30 @@ s.setFromString(
 s.setAllCandidates();
 s.print();
 
-t1 = document.createElement('textarea');
-t1.style = "margin: 10px; width: 325px; height: 125px;";
-t1.innerHTML = 
-`R1C2 del digit 3 by X-Wing
-R2C3 enter digit 7 using hidden_pair
+textarea1 = document.createElement('textarea');
+textarea1.style = "margin: 10px; width: 325px; height: 150px;";
+textarea1.innerHTML = 
+`del 1 in R6C4 by pointing_pair (R7R9C4)
+del 2,4 in C1 by naked_pair (R1R7C1)
 ...
-coord action by lemma
-User can write in this area instructions for solver or load board from string.`;
-document.body.appendChild(t1);
+action in set by lemma
+User can write in this area instructions for solver or load board from string.
+q - lastHero
+h - hiddenOne
+e - estimate`;
 
-let flag = true;
+textarea1.focused = false;
+textarea1.addEventListener('focus', () => { textarea1.focused = true });
+textarea1.addEventListener('blur', () => { textarea1.focused = false });
+
+document.body.appendChild(textarea1);
 
 function turn(solveFunc) {
-  if(flag) {
-    solveFunc();
-    s.solver.estimate();
-  }
-  else {
-    // s.solver.tactics.hiddenOne.solve();
-  }
-  // s.print();
-  
-    
-  // flag = !flag;
+  s.setAllCandidates();
+  s.clearColors();
+  solveFunc();
+  s.solver.detectErrors();
+  s.print();
 }
 
 s.elem.oncontextmenu = function () {
@@ -306,9 +306,26 @@ function getRowAndColumnOfEvent(event) {
 }
 
 window.addEventListener('keydown', (event) => {
-  // if (event.key === "Enter" && event.shiftKey) { turn() }
-  if (event.key === "q") { turn(s.solver.tactics.lastHero.solve) }
-  if (event.key === "h") { turn(s.solver.tactics.hiddenOne.solve) }
+  if (textarea1.focused === false) {
+    if (event.key === "q") { turn(s.solver.tactics.lastHero.solve) }
+    if (event.key === "h") { turn(s.solver.tactics.hiddenOne.solve) }
+    if (event.key === "e") {
+      turn(() => {
+        s.solver.tactics.lastHero.estimate();
+        s.solver.tactics.hiddenOne.estimate();
+      }
+    )}
+  }
+});
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === "Enter" && event.shiftKey) {
+    // set tab focus to sudoku element NOT WORKS
+    // event.preventDefault();
+    // event.stopPropagation();
+    // s.elem.focus();
+    console.log('try to set focus on', s.elem);
+  }
 });
 
 function Sudoku() {
